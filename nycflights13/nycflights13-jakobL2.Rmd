@@ -1,0 +1,197 @@
+---
+title: "New York City Flights"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    code_folding: show  
+    theme: united
+    highlight: tango
+    number_sections: true
+---
+
+# Setup
+
+First, we load the tidyverse package.
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+Then, we need to install the package `nycflights13`. The package contains the following five datasets: _airlines_, _airports_, _planes_, _weather_, and _flights_. For explanations on the data use `help(airlines)`, `help(airports)`, etc. To make the data visible in the global environment we need to assign them to some variable.
+
+```{r}
+airlines <- nycflights13::airlines 
+airports <- nycflights13::airports
+planes <- nycflights13::planes
+weather <- nycflights13::weather
+flights <- nycflights13::flights
+```
+
+# Analyse data
+## Airlines
+- Inspect the airlines data and print the first 5 rows.
+```{r}
+airlines %>%
+  head(5)
+```
+
+
+## Airports 
+- Inspect the airports data and print the first rows. 
+```{r}
+airports %>%
+  head(5)
+```
+
+- The variabe `alt` represents the airport's altitude in feet. Replace `alt` by the corresponding altitude in meters (meter = feet * 3.28084). Then filter for the 5 airports with the highest altitude
+```{r}
+airports <- airports %>%
+  mutate(alt = alt/3.28084)
+
+airports %>%
+  arrange(desc(alt)) %>%
+  head(5)
+```
+
+- Filter for all airports which are located at an altitude lower than sea level
+```{r}
+airports %>%
+  filter(alt < 0)
+```
+
+## Weather
+- Inspect the data and print the first rows. 
+```{r}
+weather[1:3,]
+```
+
+- Does the data only cover New York or also the weather at destination airports? 
+```{r}
+weather$origin %>%
+  unique()
+
+# covers only NY
+```
+
+- Change the units to European standards:  
+  * Temperature (`temp`) and dew point (`dewp`): Celsius = (Fahrenheit - 32) * 5 / 9 
+  * Visibility (`visib`): kilometer = miles / 1.60934
+  * Wind speed (`wind_speed`): kilometer/hour = (miles/hour) /1.60934
+  * Precipitation (`precip`): millimeter = inches * 20.54
+```{r}
+weather <- weather %>%
+  mutate(temp = (temp - 32)*5/9, 
+         dewp = (dewp - 32)*5/9,
+         visib = visib * 1.60934,
+         wind_speed = wind_speed * 1.60934,
+         precip = precip * 20.54
+         )
+```
+  
+- What was the 2013 average of `temp`, `wind_speed`, and `visib` at the JFK airport?
+```{r}
+weather %>%
+  filter(origin == "JFK") %>%
+  summarise("avg temp (°C)" = round(mean(temp, na.rm = T),1), 
+            "avg wind speed (km/h)" = round(mean(wind_speed, na.rm = T),1),
+            "avg visib (km)" = round(mean(visib, na.rm = T), 1)
+            )
+  
+```
+
+- What was the *monthly* average of `temp`, `wind_speed`, and `visib` at the JFK airport?
+```{r}
+weather %>%
+  filter(origin == "JFK") %>%
+  group_by(month) %>%
+  summarise("avg temp (°C)" = round(mean(temp, na.rm = T),1), 
+            "avg wind speed (km/h)" = round(mean(wind_speed, na.rm = T),1),
+            "avg visib (km)" = round(mean(visib, na.rm = T), 1)
+            ) 
+  
+  
+```
+
+- What was the minimum `temp`, the maximum `temp`, and the total amount of `precip` at each of the 3 airports in December 2013? 
+```{r}
+weather %>%
+  filter(month == "12") %>%
+  group_by(origin) %>%
+  summarise("min temp (°C)" = min(temp, na.rm = T),
+            "max temp (°C)" = max(temp, na.rm = T),
+            "total precip (mm)" = sum(precip, na.rm = T)
+            )
+```
+
+
+## Planes
+- Inspect the planes data and print the first 5 rows.
+```{r}
+planes[1:5,]
+```
+
+- Count the numer of planes per `manufacturer` and sort in descending order? 
+```{r}
+planes %>%
+  group_by(manufacturer) %>%
+  summarise(n = n_distinct(tailnum)) %>%
+  arrange(desc(n))
+```
+
+- Calculate per manufacturer: 1. number of planes, 2. average number of `seats`, 3. average number of `engines`, 4. average `year` when the planes where manufactured. And again order in descending order of the number of planes
+```{r}
+planes %>%
+  group_by(manufacturer) %>%
+  summarise("planes" = n_distinct(tailnum),
+            "Avg number of seats" = round(mean(seats, na.rm = T),1),
+            "Avg. number of engines" = round(mean(engines, na.rm = T),1),
+            "Avg. year of construction" = round(mean(year, na.rm = T))
+            ) %>%
+  arrange(desc(planes))
+```
+
+## Flights
+- Inspect the flights data and print the first 5 rows.
+```{r}
+flights[1:5,]
+```
+
+- Count the total number of flights and the average delay during the whole year per `hour` of departure.
+```{r}
+flights %>%
+  group_by(hour) %>%
+  summarise(flights = n_distinct(flight),
+            avg_delay = round(mean(dep_delay, na.rm = T),1),
+            )
+```
+
+- Count the number of flights by destionation airport (`dest`) and arrange them in descending order.
+```{r}
+flights %>%
+  group_by(dest) %>%
+  summarise(flights = n_distinct(flight)) %>%
+  arrange(desc(flights))
+```
+
+
+# Join datasets 
+Join the five data sets into one large data set. To better understand the relationship between them, study the file _img/table_realtionships.PNG_ (or alternatively knit this Rmd file.) 
+
+![](img/table_relationships.PNG){width=70%}
+```{r}
+# nö!
+```
+
+
+# Freely explore
+Some questions for inspiration:
+
+- Do smaller planes (as measured by the number of seats) have less departure delay?
+- What is the average flight distance and the average delay by airline
+- What's the average delay by airline? (But note that this will be strongly correlated with flight distance, 
+- Is bad weather (precipitation, low visibility, low temperatures) related to departure delay? 
+```{r}
+# nö!
+```
+
