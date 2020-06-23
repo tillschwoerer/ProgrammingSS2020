@@ -1,0 +1,82 @@
+---
+title: "Spotify-charts"
+author: "Jakob Liebmann"
+date: "23 June 2020"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    code_folding: show  
+    theme: united
+    highlight: tango
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# Getting data
+```{r}
+library(tidyverse)
+
+read_csv("https://spotifycharts.com/regional/us/daily/2020-06-21/download", 
+    col_types = cols(Streams = col_integer()), skip = 1)
+```
+
+# Write a function
+```{r}
+getCharts <- function(country = "us", date = "2020-04-05") {
+  link <- paste0("https://spotifycharts.com/regional/",
+                 country,
+                 "/daily/",
+                 date,
+                 "/download"
+                 )
+  df <- read_csv(link, col_types = cols(Streams = col_integer()), skip = 1) %>%
+    mutate(country = country, date = date)
+  return(df)
+}
+```
+
+# Map the function
+```{r}
+countrylist <- c("us", "gb", "fr", "de")
+purrr::map(countrylist, getCharts) %>%
+  bind_rows()
+```
+
+# For loop
+```{r}
+df <- data.frame()
+for (country in countrylist) {
+  df <- df %>%
+    bind_rows(getCharts(country))
+}
+```
+
+# Multiple loops
+```{r}
+datelist <- c("2020-04-05", "2020-04-06", "2020-04-07")
+df <- data.frame()
+for (date in datelist) {
+  for (country in countrylist) {
+    df <- df %>% 
+      bind_rows(getCharts(country, date))
+  }
+}
+```
+
+# Map Approach
+```{r}
+country_date <- countrylist %>%
+  expand.grid(datelist)
+purrr::map2(country_date$Var1, country_date$Var2, getCharts) %>%
+  bind_rows()
+```
+
